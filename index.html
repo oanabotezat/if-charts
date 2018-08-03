@@ -8,7 +8,7 @@
 
   <script type="text/javascript">
 
-    let bollingerData = [], RSIinterm=[], RSIData=[];
+    var bollingerData = [], RSIinterm=[], RSIData=[];
     document.addEventListener("DOMContentLoaded", function(event) {
       getDataSet("data/Oslo_STL.json", function(dataSet) {
         if (dataSet) {
@@ -46,29 +46,29 @@
     }
 
     function calculateRSIData(id, dataSet) {
-       RSIinterm = dataSet.reduce((rsiData, value, index) => {
+       RSIinterm = dataSet.reduce(function (rsiData, value, index) {
         if (index > 0 ) {
-          const change = value.last - dataSet[index-1].last;
-          const gain = change > 0 ? change: 0;
-          const loss = change < 0 ? -change: 0;
+          var change = value.last - dataSet[index-1].last;
+          var gain = change > 0 ? change: 0;
+          var loss = change < 0 ? -change: 0;
 
           rsiData.push({date: value.date, change: change, gain: gain, loss:loss});
         }
         return rsiData;
       }, []);
 
-      RSIData[id] = RSIinterm.reduce((rsiData, value, index) => {
+      RSIData[id] = RSIinterm.reduce(function (rsiData, value, index) {
         if (index  >= 14) {
-          const avgGain =  RSIinterm.slice(index-14, index).reduce(function(total, value) {
+          var avgGain =  RSIinterm.slice(index-14, index).reduce(function(total, value) {
             return  total + value.gain;
           }, 0)/14;
 
-          const avgLoss =  RSIinterm.slice(index-14, index).reduce(function(total, value) {
+          var avgLoss =  RSIinterm.slice(index-14, index).reduce(function(total, value) {
             return  total + value.loss;
           }, 0)/14;
 
-          const RS = avgGain/avgLoss;
-          const RSI = avgLoss === 0 ? 100 : 100 - (100/(1+RS));
+          var RS = avgGain/avgLoss;
+          var RSI = avgLoss === 0 ? 100 : 100 - (100/(1+RS));
 
           rsiData.push(Object.assign(value, {avgGain:avgGain, avgLoss:avgLoss, RS:RS, RSI:RSI}));
 
@@ -79,9 +79,9 @@
     }
 
     function calculateBolingerData(id, dataSet) {
-      bollingerData[id] = dataSet.reduce((bollingerData, value, index) => {
+      bollingerData[id] = dataSet.reduce(function (bollingerData, value, index)  {
         if (index >19) {
-          const result = standardDeviation(dataSet.slice(index - 20, index));
+          var result = standardDeviation(dataSet.slice(index - 20, index));
           bollingerData.push(Object.assign({date: value.date}, result));
         }
         return bollingerData;
