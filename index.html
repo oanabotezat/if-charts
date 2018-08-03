@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Infront code-test</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.13.0/moment.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.6.0/Chart.min.js"></script>
+
+  <script type="text/javascript">
+
+    let bollingerData = [], RSIData=[];
+    document.addEventListener("DOMContentLoaded", function(event) {
+      getDataSet("data/Oslo_STL.json", function(dataSet) {
+        if (dataSet) {
+          calculateBolingerData('STL', JSON.parse(dataSet));
+          calculateRSIData('STL', JSON.parse(dataSet));
+          renderChart("STL", JSON.parse(dataSet));
+        }
+      });
+      getDataSet("data/Stockholm_ABB.json", function(dataSet) {
+        if (dataSet) {
+          calculateBolingerData('ABB', JSON.parse(dataSet));
+          calculateRSIData('ABB', JSON.parse(dataSet));
+          renderChart("ABB", JSON.parse(dataSet));
+        }
+      });
+    });
+
+    function standardDeviation(values){
+      var avg = average(values);
+
+      var squareDiffs = values.map(function(value){
+        var diff = value.last - avg;
+        var sqrDiff = diff * diff;
+        return sqrDiff;
+      });
+
+      var avgSquareDiff = average(squareDiffs);
+
+      var stdDev = Math.sqrt(avgSquareDiff);
+      return {SMA: avg, STDEV: stdDev, UPPER: (avg+ 2* stdDev), LOWER: (avg - 2* stdDev)};
+    }
+
+    function average(data){
+      var sum = data.reduce(function(a, b) {
+        return (a.last || a) + (b.last || b);
+      });
+
+      var avg = sum / data.length;
+      return avg;
+    }
+
+    function calculateRSIData(id, dataSet) {
+
+
+    }
+
+    function calculateBolingerData(id, dataSet) {
+      bollingerData[id] = dataSet.reduce((bollingerData, value, index) => {
+        if (index >= 19) {
+          const result = standardDeviation(dataSet.slice(index - 19, index));
+          console.log('result stdev', result);
+          bollingerData.push(Object.assign({date: value.date}, result));
+        }
+        return bollingerData;
+      }, []);
+    }
+
+    function renderChart(id, dataSet) {
+      var data = dataSet.map(function(item, index, array) {
+        return {
+          x: (new Date(item.date)).toISOString(),
+          y: item.last
+        };
+      });
+
+      var SMA = bollingerData[id].map(function(item, index, array) {
+        return {
+          x: (new Date(item.date)).toISOString(),
+          y: item.SMA
+        };
+      });
+
+      var UPPER = bollingerData[id].map(function(item, index, array) {
+        return {
+          x: (new Date(item.date)).toISOString(),
+          y: item.UPPER
+        };
+      });
+
+      var LOWER = bollingerData[id].map(function(item, index, array) {
+        return {
+          x: (new Date(item.date)).toISOString(),
+          y: item.LOWER
+        };
+      });
+
+
+
+
+
+      var context = document.querySelector("#" + id).getContext('2d');
+      var stockChart = new Chart(context, {
+        type: 'line',
+        data: {
+          datasets: [{
+            label: id,
+            fill: false,
+            data: data,
+            pointRadius: 0,
+            borderColor: "#1a5ecc"
+          },
+
+            {
+              label: `Upper Band ${id}`,
+              fill: '+2',
+              data: UPPER,
+              pointRadius: 0,
+              borderColor: "blue",
+              borderWidth: 0.3,
+
+            },
+
+            {
+              label: `20-day SMA ${id}`,
+              fill: false,
+              data: SMA,
+              pointRadius: 0,
+              borderColor: "red",
+              borderWidth: 0.8,
+              borderDash: [4,4]
+
+            },
+            {
+              label: `Lower Band ${id}`,
+              fill: false,
+              data: LOWER,
+              pointRadius: 0.3,
+              borderColor: "blue",
+              borderWidth: 0.3,
+
+            }
+
+            ]
+        },
+        options: {
+          responsive: false,
+          scales: {
+            xAxes: [{
+              type: "time",
+              display: true
+            }]
+          }
+        }
+      });
+    }
+
+    function getDataSet(url, callback) {
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', url);
+      xhr.onload = function() {
+        if (xhr.status == 200) {
+          callback(xhr.responseText);
+        } else {
+          callback(null);
+        }
+      };
+      xhr.send();
+    }
+  </script>
+</head>
+<body>
+
+<canvas id="STL" width="900" height="450"></canvas>
+<canvas id="ABB" width="900" height="450"></canvas>
+</body>
+</html>
