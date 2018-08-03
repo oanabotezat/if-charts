@@ -8,7 +8,7 @@
 
   <script type="text/javascript">
 
-    let bollingerData = [], RSIData=[];
+    let bollingerData = [], RSIinterm=[], RSIData=[];
     document.addEventListener("DOMContentLoaded", function(event) {
       getDataSet("data/Oslo_STL.json", function(dataSet) {
         if (dataSet) {
@@ -27,7 +27,9 @@
     });
 
     function standardDeviation(values){
-      var avg = average(values);
+      var avg = values.reduce(function(total, value) {
+        return  total + value.last;
+      }, 0)/values.length;
 
       var squareDiffs = values.map(function(value){
         var diff = value.last - avg;
@@ -35,31 +37,51 @@
         return sqrDiff;
       });
 
-      var avgSquareDiff = average(squareDiffs);
+      var avgSquareDiff = squareDiffs.reduce(function(total, value) {
+        return  total + value;
+      }, 0)/squareDiffs.length;
 
       var stdDev = Math.sqrt(avgSquareDiff);
       return {SMA: avg, STDEV: stdDev, UPPER: (avg+ 2* stdDev), LOWER: (avg - 2* stdDev)};
     }
 
-    function average(data){
-      var sum = data.reduce(function(a, b) {
-        return (a.last || a) + (b.last || b);
-      });
-
-      var avg = sum / data.length;
-      return avg;
-    }
-
     function calculateRSIData(id, dataSet) {
+       RSIinterm = dataSet.reduce((rsiData, value, index) => {
+        if (index > 0 ) {
+          const change = value.last - dataSet[index-1].last;
+          const gain = change > 0 ? change: 0;
+          const loss = change < 0 ? -change: 0;
 
+          rsiData.push({date: value.date, change: change, gain: gain, loss:loss});
+        }
+        return rsiData;
+      }, []);
+
+      RSIData[id] = RSIinterm.reduce((rsiData, value, index) => {
+        if (index  >= 14) {
+          const avgGain =  RSIinterm.slice(index-14, index).reduce(function(total, value) {
+            return  total + value.gain;
+          }, 0)/14;
+
+          const avgLoss =  RSIinterm.slice(index-14, index).reduce(function(total, value) {
+            return  total + value.loss;
+          }, 0)/14;
+
+          const RS = avgGain/avgLoss;
+          const RSI = avgLoss === 0 ? 100 : 100 - (100/(1+RS));
+
+          rsiData.push(Object.assign(value, {avgGain:avgGain, avgLoss:avgLoss, RS:RS, RSI:RSI}));
+
+        }
+        return rsiData;
+      }, []);
 
     }
 
     function calculateBolingerData(id, dataSet) {
       bollingerData[id] = dataSet.reduce((bollingerData, value, index) => {
-        if (index >= 19) {
-          const result = standardDeviation(dataSet.slice(index - 19, index));
-          console.log('result stdev', result);
+        if (index >19) {
+          const result = standardDeviation(dataSet.slice(index - 20, index));
           bollingerData.push(Object.assign({date: value.date}, result));
         }
         return bollingerData;
@@ -73,31 +95,6 @@
           y: item.last
         };
       });
-
-      var SMA = bollingerData[id].map(function(item, index, array) {
-        return {
-          x: (new Date(item.date)).toISOString(),
-          y: item.SMA
-        };
-      });
-
-      var UPPER = bollingerData[id].map(function(item, index, array) {
-        return {
-          x: (new Date(item.date)).toISOString(),
-          y: item.UPPER
-        };
-      });
-
-      var LOWER = bollingerData[id].map(function(item, index, array) {
-        return {
-          x: (new Date(item.date)).toISOString(),
-          y: item.LOWER
-        };
-      });
-
-
-
-
 
       var context = document.querySelector("#" + id).getContext('2d');
       var stockChart = new Chart(context, {
@@ -114,7 +111,12 @@
             {
               label: `Upper Band ${id}`,
               fill: '+2',
-              data: UPPER,
+              data: bollingerData[id].map(function(item, index, array) {
+                return {
+                  x: (new Date(item.date)).toISOString(),
+                  y: item.UPPER
+                };
+              }),
               pointRadius: 0,
               borderColor: "blue",
               borderWidth: 0.3,
@@ -124,7 +126,12 @@
             {
               label: `20-day SMA ${id}`,
               fill: false,
-              data: SMA,
+              data: bollingerData[id].map(function(item, index, array) {
+                return {
+                  x: (new Date(item.date)).toISOString(),
+                  y: item.SMA
+                };
+              }),
               pointRadius: 0,
               borderColor: "red",
               borderWidth: 0.8,
@@ -134,9 +141,29 @@
             {
               label: `Lower Band ${id}`,
               fill: false,
-              data: LOWER,
+              data: bollingerData[id].map(function(item, index, array) {
+                return {
+                  x: (new Date(item.date)).toISOString(),
+                  y: item.LOWER
+                };
+              }),
               pointRadius: 0.3,
               borderColor: "blue",
+              borderWidth: 0.3,
+
+            },
+
+            {
+              label: `RSI ${id}`,
+              fill: false,
+              data: RSIData[id].map(function(item, index, array) {
+                return {
+                  x: (new Date(item.date)).toISOString(),
+                  y: item.RSI
+                };
+              }),
+              pointRadius: 0.3,
+              borderColor: "magenta",
               borderWidth: 0.3,
 
             }
