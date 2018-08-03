@@ -8,7 +8,7 @@
 
   <script type="text/javascript">
 
-    var bollingerData = [], RSIinterm=[], RSIData=[];
+    var bollingerData = [], RSIinterm = [], RSIData = [];
     document.addEventListener("DOMContentLoaded", function(event) {
       getDataSet("data/Oslo_STL.json", function(dataSet) {
         if (dataSet) {
@@ -26,51 +26,51 @@
       });
     });
 
-    function standardDeviation(values){
+    function standardDeviation(values) {
       var avg = values.reduce(function(total, value) {
-        return  total + value.last;
-      }, 0)/values.length;
+        return total + value.last;
+      }, 0) / values.length;
 
-      var squareDiffs = values.map(function(value){
+      var squareDiffs = values.map(function(value) {
         var diff = value.last - avg;
         var sqrDiff = diff * diff;
         return sqrDiff;
       });
 
       var avgSquareDiff = squareDiffs.reduce(function(total, value) {
-        return  total + value;
-      }, 0)/squareDiffs.length;
+        return total + value;
+      }, 0) / squareDiffs.length;
 
       var stdDev = Math.sqrt(avgSquareDiff);
-      return {SMA: avg, STDEV: stdDev, UPPER: (avg+ 2* stdDev), LOWER: (avg - 2* stdDev)};
+      return {SMA: avg, STDEV: stdDev, UPPER: (avg + 2 * stdDev), LOWER: (avg - 2 * stdDev)};
     }
 
     function calculateRSIData(id, dataSet) {
-       RSIinterm = dataSet.reduce(function (rsiData, value, index) {
-        if (index > 0 ) {
-          var change = value.last - dataSet[index-1].last;
-          var gain = change > 0 ? change: 0;
-          var loss = change < 0 ? -change: 0;
+      RSIinterm = dataSet.reduce(function(rsiData, value, index) {
+        if (index > 0) {
+          var change = value.last - dataSet[index - 1].last;
+          var gain = change > 0 ? change : 0;
+          var loss = change < 0 ? -change : 0;
 
-          rsiData.push({date: value.date, change: change, gain: gain, loss:loss});
+          rsiData.push({date: value.date, change: change, gain: gain, loss: loss});
         }
         return rsiData;
       }, []);
 
-      RSIData[id] = RSIinterm.reduce(function (rsiData, value, index) {
-        if (index  >= 14) {
-          var avgGain =  RSIinterm.slice(index-14, index).reduce(function(total, value) {
-            return  total + value.gain;
-          }, 0)/14;
+      RSIData[id] = RSIinterm.reduce(function(rsiData, value, index) {
+        if (index >= 14) {
+          var avgGain = RSIinterm.slice(index - 14, index).reduce(function(total, value) {
+            return total + value.gain;
+          }, 0) / 14;
 
-          var avgLoss =  RSIinterm.slice(index-14, index).reduce(function(total, value) {
-            return  total + value.loss;
-          }, 0)/14;
+          var avgLoss = RSIinterm.slice(index - 14, index).reduce(function(total, value) {
+            return total + value.loss;
+          }, 0) / 14;
 
-          var RS = avgGain/avgLoss;
-          var RSI = avgLoss === 0 ? 100 : 100 - (100/(1+RS));
+          var RS = avgGain / avgLoss;
+          var RSI = avgLoss === 0 ? 100 : 100 - (100 / (1 + RS));
 
-          rsiData.push(Object.assign(value, {avgGain:avgGain, avgLoss:avgLoss, RS:RS, RSI:RSI}));
+          rsiData.push(Object.assign(value, {avgGain: avgGain, avgLoss: avgLoss, RS: RS, RSI: RSI}));
 
         }
         return rsiData;
@@ -79,8 +79,8 @@
     }
 
     function calculateBolingerData(id, dataSet) {
-      bollingerData[id] = dataSet.reduce(function (bollingerData, value, index)  {
-        if (index >19) {
+      bollingerData[id] = dataSet.reduce(function(bollingerData, value, index) {
+        if (index > 19) {
           var result = standardDeviation(dataSet.slice(index - 20, index));
           bollingerData.push(Object.assign({date: value.date}, result));
         }
@@ -100,13 +100,14 @@
       var stockChart = new Chart(context, {
         type: 'line',
         data: {
-          datasets: [{
-            label: id,
-            fill: false,
-            data: data,
-            pointRadius: 0,
-            borderColor: "#1a5ecc"
-          },
+          datasets: [
+            {
+              label: id,
+              fill: false,
+              data: data,
+              pointRadius: 0,
+              borderColor: "#1a5ecc"
+            },
 
             {
               label: `Upper Band ${id}`,
@@ -135,7 +136,7 @@
               pointRadius: 0,
               borderColor: "red",
               borderWidth: 0.8,
-              borderDash: [4,4]
+              borderDash: [4, 4]
 
             },
             {
@@ -152,7 +153,6 @@
               borderWidth: 0.3,
 
             },
-
             {
               label: `RSI ${id}`,
               fill: false,
@@ -167,8 +167,7 @@
               borderWidth: 0.3,
 
             }
-
-            ]
+          ]
         },
         options: {
           responsive: false,
